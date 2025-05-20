@@ -7,17 +7,16 @@ import swaggerUi from '@fastify/swagger-ui'
 
 const fastify = Fastify({ logger: true })
 
-// === Swagger configuration ===
 await fastify.register(swagger, {
   swagger: {
     info: {
       title: 'City API',
-      description: 'API pour gérer les villes et les recettes',
-      version: '1.0.0'
+      version: '1.0.0',
+      description: 'API des villes et recettes pour le test'
     }
   },
   exposeRoute: true,
-  routePrefix: '/json' // JSON disponible sur /json
+  routePrefix: '/json' // Swagger JSON sur /json
 })
 
 await fastify.register(swaggerUi, {
@@ -30,12 +29,11 @@ await fastify.register(swaggerUi, {
   transformStaticCSP: (header) => header
 })
 
-// === Routes API ===
+// Routes API
 fastify.get('/cities/:cityId/infos', getCityInfo)
 fastify.post('/cities/:cityId/recipes', addRecipe)
 fastify.delete('/cities/:cityId/recipes/:recipeId', deleteRecipe)
 
-// === Démarrage serveur ===
 async function main() {
   fastify.listen(
     {

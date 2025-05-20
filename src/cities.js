@@ -9,32 +9,36 @@ export const getCityInfo = async (request, reply) => {
   try {
     const city = await getCityById(cityId)
     const weather = await getWeatherByCityName(city.name)
+
     const localRecipes = recipesByCity[cityId] || []
+    const baseRecipes = Array.isArray(city.recipes) ? city.recipes : []
 
     const response = {
-      coordinates: [city.latitude, city.longitude],
+      coordinates: [
+        typeof city.latitude === 'number' ? city.latitude : null,
+        typeof city.longitude === 'number' ? city.longitude : null
+      ],
       population: Number(city.population),
       knownFor: Array.isArray(city.knownFor) ? city.knownFor : [],
       weatherPredictions: [
         {
-          when: "today",
-          min: weather.forecast[0]?.min ?? null,
-          max: weather.forecast[0]?.max ?? null
+          when: 'today',
+          min: weather.forecast?.[0]?.min ?? null,
+          max: weather.forecast?.[0]?.max ?? null
         },
         {
-          when: "tomorrow",
-          min: weather.forecast[1]?.min ?? null,
-          max: weather.forecast[1]?.max ?? null
+          when: 'tomorrow',
+          min: weather.forecast?.[1]?.min ?? null,
+          max: weather.forecast?.[1]?.max ?? null
         }
       ],
-      recipes: [...(city.recipes || []), ...localRecipes].map(r => ({
+      recipes: [...baseRecipes, ...localRecipes].map(r => ({
         id: r.id,
         content: r.content
       }))
     }
 
     return reply.send(response)
-
   } catch {
     return reply.status(404).send({ error: `Ville introuvable avec l'ID ${cityId}` })
   }
@@ -44,8 +48,8 @@ export const addRecipe = async (request, reply) => {
   const { cityId } = request.params
   const { content } = request.body
 
-  if (!content || typeof content !== 'string') {
-    return reply.status(400).send({ error: 'Content is required and must be a string' })
+  if (!content || typeof content !== 'string' || content.trim().length === 0) {
+    return reply.status(400).send({ error: 'Content is required and must be a non-empty string' })
   }
 
   if (content.length < 10) {
@@ -57,7 +61,8 @@ export const addRecipe = async (request, reply) => {
   }
 
   try {
-    await getCityById(cityId)
+    const city = await getCityById(cityId)
+    if (!city) throw new Error()
 
     const recipe = {
       id: Date.now(),
@@ -73,7 +78,7 @@ export const addRecipe = async (request, reply) => {
     return reply.status(201).send(recipe)
 
   } catch {
-    return reply.status(404).send({ error: `City not found` })
+    return reply.status(404).send({ error: 'City not found' })
   }
 }
 
@@ -83,14 +88,17 @@ export const deleteRecipe = async (request, reply) => {
   try {
     await getCityById(cityId)
 
-    const recipes = recipesByCity[cityId]
-    if (!recipes) return reply.status(404).send()
+    const cityRecipes = recipesByCity[cityId]
+    if (!Array.isArray(cityRecipes)) {
+      return reply.status(404).send()
+    }
 
-    const index = recipes.findIndex(r => String(r.id) === String(recipeId))
-    if (index === -1) return reply.status(404).send()
+    const index = cityRecipes.findIndex(r => String(r.id) === String(recipeId))
+    if (index === -1) {
+      return reply.status(404).send()
+    }
 
-    recipes.splice(index, 1)
-
+    cityRecipes.splice(index, 1)
     return reply.status(204).send()
   } catch {
     return reply.status(404).send()
