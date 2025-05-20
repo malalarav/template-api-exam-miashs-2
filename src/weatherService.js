@@ -4,7 +4,7 @@ export async function getWeatherByCityName(cityName) {
   const res = await fetch(`${BASE_URL}/weather?city=${encodeURIComponent(cityName)}`)
 
   if (!res.ok) {
-    throw new Error(`Météo non trouvée pour ${cityName}`)
+    throw new Error('Weather not found')
   }
 
   return await res.json()
