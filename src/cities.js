@@ -1,7 +1,7 @@
 import { getCityById } from './cityService.js'
 import { getWeatherByCityName } from './weatherService.js'
 
-let recipesByCity = {} // Stockage en mémoire
+const recipesByCity = {}
 
 export const getCityInfo = async (request, reply) => {
   const { cityId } = request.params
@@ -9,31 +9,33 @@ export const getCityInfo = async (request, reply) => {
   try {
     const city = await getCityById(cityId)
     const weather = await getWeatherByCityName(city.name)
-
-    const recipes = recipesByCity[cityId] || []
+    const localRecipes = recipesByCity[cityId] || []
 
     const response = {
       coordinates: [city.latitude, city.longitude],
-      population: city.population,
-      knownFor: city.knownFor,
+      population: Number(city.population),
+      knownFor: Array.isArray(city.knownFor) ? city.knownFor : [],
       weatherPredictions: [
         {
-          when: 'today',
-          min: weather.forecast[0].min,
-          max: weather.forecast[0].max
+          when: "today",
+          min: weather.forecast[0]?.min ?? null,
+          max: weather.forecast[0]?.max ?? null
         },
         {
-          when: 'tomorrow',
-          min: weather.forecast[1].min,
-          max: weather.forecast[1].max
+          when: "tomorrow",
+          min: weather.forecast[1]?.min ?? null,
+          max: weather.forecast[1]?.max ?? null
         }
       ],
-      recipes
+      recipes: [...(city.recipes || []), ...localRecipes].map(r => ({
+        id: r.id,
+        content: r.content
+      }))
     }
 
     return reply.send(response)
 
-  } catch (err) {
+  } catch {
     return reply.status(404).send({ error: `Ville introuvable avec l'ID ${cityId}` })
   }
 }
@@ -42,23 +44,23 @@ export const addRecipe = async (request, reply) => {
   const { cityId } = request.params
   const { content } = request.body
 
-  if (typeof content !== 'string' || content.trim().length === 0) {
-    return reply.status(400).send({ error: 'Contenu requis' })
+  if (!content || typeof content !== 'string') {
+    return reply.status(400).send({ error: 'Content is required and must be a string' })
   }
 
   if (content.length < 10) {
-    return reply.status(400).send({ error: 'Contenu trop court (min 10 caractères)' })
+    return reply.status(400).send({ error: 'Content too short (min 10 chars)' })
   }
 
   if (content.length > 2000) {
-    return reply.status(400).send({ error: 'Contenu trop long (max 2000 caractères)' })
+    return reply.status(400).send({ error: 'Content too long (max 2000 chars)' })
   }
 
   try {
     await getCityById(cityId)
 
-    const newRecipe = {
-      id: Date.now(), // ou un compteur/uuid
+    const recipe = {
+      id: Date.now(),
       content
     }
 
@@ -66,12 +68,12 @@ export const addRecipe = async (request, reply) => {
       recipesByCity[cityId] = []
     }
 
-    recipesByCity[cityId].push(newRecipe)
+    recipesByCity[cityId].push(recipe)
 
-    return reply.status(201).send(newRecipe)
+    return reply.status(201).send(recipe)
 
   } catch {
-    return reply.status(404).send({ error: `Ville introuvable avec l'ID ${cityId}` })
+    return reply.status(404).send({ error: `City not found` })
   }
 }
 
@@ -81,21 +83,15 @@ export const deleteRecipe = async (request, reply) => {
   try {
     await getCityById(cityId)
 
-    const cityRecipes = recipesByCity[cityId]
+    const recipes = recipesByCity[cityId]
+    if (!recipes) return reply.status(404).send()
 
-    if (!cityRecipes) {
-      return reply.status(404).send()
-    }
+    const index = recipes.findIndex(r => String(r.id) === String(recipeId))
+    if (index === -1) return reply.status(404).send()
 
-    const index = cityRecipes.findIndex(r => r.id === parseInt(recipeId))
+    recipes.splice(index, 1)
 
-    if (index === -1) {
-      return reply.status(404).send()
-    }
-
-    cityRecipes.splice(index, 1)
     return reply.status(204).send()
-
   } catch {
     return reply.status(404).send()
   }

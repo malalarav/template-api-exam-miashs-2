@@ -1,13 +1,35 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
-import { getCityInfo, addRecipe, deleteRecipe } from './cities.js'
 import { submitForReview } from './submission.js'
+import { getCityInfo, addRecipe, deleteRecipe } from './cities.js'
+import swagger from '@fastify/swagger'
+import swaggerUi from '@fastify/swagger-ui'
 
 const fastify = Fastify({ logger: true })
 
+// Routes
 fastify.get('/cities/:cityId/infos', getCityInfo)
 fastify.post('/cities/:cityId/recipes', addRecipe)
 fastify.delete('/cities/:cityId/recipes/:recipeId', deleteRecipe)
+
+// Swagger
+await fastify.register(swagger, {
+  swagger: {
+    info: {
+      title: 'City API',
+      version: '1.0.0'
+    }
+  }
+})
+
+await fastify.register(swaggerUi, {
+  routePrefix: '/json',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: false
+  },
+  staticCSP: true
+})
 
 async function main() {
   fastify.listen(
