@@ -5,6 +5,7 @@ import { getCityInfo } from './cities.js'
 
 const fastify = Fastify({ logger: true })
 
+// Déclare la route GET /cities/:cityId/infos
 fastify.get('/cities/:cityId/infos', getCityInfo)
 
 async function main() {
