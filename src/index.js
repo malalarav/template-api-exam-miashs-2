@@ -1,11 +1,10 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
 import { submitForReview } from './submission.js'
-import { cityRoutes } from './cities.js'
 
-const fastify = Fastify({ logger: true })
-
-await fastify.register(cityRoutes)
+const fastify = Fastify({
+  logger: true,
+})
 
 fastify.listen(
   {
@@ -18,6 +17,10 @@ fastify.listen(
       process.exit(1)
     }
 
+    //////////////////////////////////////////////////////////////////////
+    // Don't delete this line, it is used to submit your API for review //
+    // everytime your start your server.                                //
+    //////////////////////////////////////////////////////////////////////
     submitForReview(fastify)
   }
 )
