@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'
-
 const BASE_URL = 'https://api-ugi2pflmha-ew.a.run.app'
 
 export async function getCityById(cityId) {

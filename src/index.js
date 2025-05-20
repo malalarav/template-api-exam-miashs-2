@@ -1,14 +1,13 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
 import { submitForReview } from './submission.js'
-import { cityRoutes } from './cities.js'
+import { getCityInfo } from './cities.js'
 
 const fastify = Fastify({ logger: true })
 
-// Fonction main auto-invoquée pour utiliser await
-async function main() {
-  await fastify.register(cityRoutes)
+fastify.get('/cities/:cityId/infos', getCityInfo)
 
+async function main() {
   fastify.listen(
     {
       port: process.env.PORT || 3000,
@@ -20,7 +19,6 @@ async function main() {
         process.exit(1)
       }
 
-      // Soumission pour validation
       submitForReview(fastify)
     }
   )
